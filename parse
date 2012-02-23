@@ -1,0 +1,11 @@
+#!/bin/bash
+if [ $# -ne 3 ]
+then
+	echo "Usage: parse [rules] [facts] [styles]"
+	exit
+fi
+
+python parsedlv.py $1 > dlv_aux_rules
+./dlv dlv_aux_rules $2 > dlv_out
+python graphdlv.py parse_map.p dlv_out $3 > debug
+#dot -Tpdf -o graph.pdf graph_dlv.dot

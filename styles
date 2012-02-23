@@ -1,0 +1,14 @@
+edge.edges.          color=blue  
+edge.nodes.          
+anc.edges.           style=invis
+anc.nodes.           constraint=false
+com_anc.edges.       color=yellow 
+com_anc.nodes.       
+aux.edges.                
+aux.nodes.           shape=point
+not_lca.edges.       color=purple
+not_lca.nodes.       
+not not_lca.edges.   color=green
+not not_lca.nodes.   
+lca.edges.           color=orange
+lca.nodes.           

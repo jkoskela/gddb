@@ -9,14 +9,18 @@ def main():
 	if(len(sys.argv) < 3):
 		print('usage: python parse.py [parse map] [dlv output] [styles] \n')
 		sys.exit(1)
-	f_out = 'graph_dlv.pdf' 
+	f_out_dot = 'graphdlv.dot' 
+	f_out_pdf = 'graphdlv.pdf' 
 	rules = pickle.load(open(sys.argv[1], 'rb'))
 	
 	s = open(sys.argv[2]).read()
 
 	g = graph_map(rules, s)
 	styles = read_styles(sys.argv[3])
-	draw(g, styles, f_out)
+	pp = pprint.PrettyPrinter(indent=4)
+	pp.pprint(styles)	
+	pp.pprint(g)	
+	draw(g, styles, f_out_dot, f_out_pdf)
 
 
 #Creates edge tuples and nodes from aux firings and places into graph map
@@ -24,7 +28,7 @@ def graph_map(rules, s):
 	
 	aux_count = 0
 	m = re.findall('(aux[^(]*)\(([^)]*)\)', s)
-	subg = dict()
+	subg = {}
 	subg['aux'] = {'nodes':set(), 'edges':[]} 
 	for g in m:
 		aux_count = aux_count + 1
@@ -60,31 +64,44 @@ def graph_map(rules, s):
 			subg[pred]['nodes'].add(atom)
 			subg[pred]['edges'].append((atom, aux_atom))
 
-	pp = pprint.PrettyPrinter(indent=4)
-	pp.pprint(subg)	
-
 	print('There were %s firings.' % aux_count)
 	return subg;
 
+
 def read_styles(f_in):
-	styles = dict()
+	styles = {}
 	s = open(f_in,'rb').readlines() 
 	for line in s:
-		line = line.split(':')
+		line = line.split('.')
 		head = line[0]
-		attr = dict()
-		m = re.findall('([^=]*)=(\w*)',line[1])
+		subg = line[1]
+		if head not in styles:
+			styles[head] = {}
+			styles[head]['nodes'] = {}
+			styles[head]['edges'] = {}
+		m = re.findall('([\w^=]*)=(\w*)',line[2])
 		for g in m:
-			attr[g[0]] = g[1]
+			styles[head][subg][g[0]] = g[1]
+	return styles
 	
 
-def draw(graph, styles, f_out):
+def draw(graph, styles, f_out_dot, f_out_pdf):
+	default = {}
 	G = pgv.AGraph()
+	
+	node_attr = styles['aux']['nodes']
+	G.add_nodes_from(graph['aux']['nodes'], **node_attr)
+
 	for key,subg in graph.iteritems():
-		attr = styles[key]
-		G.add_nodes_from(subg['nodes'], **attr)
-		G.add_edges_from(subg['edges'], **attr)
-	G.draw(f_out,prog='dot')
+		node_attr = styles[key]['nodes']
+		edge_attr = styles[key]['edges']
+		if not node_attr: node_attr = default
+		if not edge_attr: edge_attr = default
+		G.add_nodes_from(subg['nodes'], **node_attr)
+		G.add_edges_from(subg['edges'], **edge_attr)
+		
+	G.draw(f_out_dot,prog='dot')
+	G.draw(f_out_pdf,prog='dot')
 
 	
 if __name__=="__main__":
