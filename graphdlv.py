@@ -2,25 +2,28 @@ import re
 import sys
 import pickle
 import pygraphviz as pgv
+from collections import defaultdict
 #debug
 import pprint
 
 def main():
 	if(len(sys.argv) < 3):
-		print('usage: python parse.py [parse map] [dlv output] [styles] \n')
+		print('usage: python parse.py [parse map] [dlv output] [styles]  \n')
 		sys.exit(1)
 	f_out_dot = 'graphdlv.dot' 
 	f_out_pdf = 'graphdlv.pdf' 
+	f_out_graph = 'graph.p'
+
 	rules = pickle.load(open(sys.argv[1], 'rb'))
-	
 	s = open(sys.argv[2]).read()
 
 	g = graph_map(rules, s)
 	styles = read_styles(sys.argv[3])
-	pp = pprint.PrettyPrinter(indent=4)
-	pp.pprint(styles)	
-	pp.pprint(g)	
+	#pp = pprint.PrettyPrinter(indent=4)
+	#pp.pprint(styles)	
+	#pp.pprint(g)	
 	draw(g, styles, f_out_dot, f_out_pdf)
+	pickle.dump(g, open(f_out_graph, 'wb'))
 
 
 #Creates edge tuples and nodes from aux firings and places into graph map
@@ -74,14 +77,15 @@ def read_styles(f_in):
 	for line in s:
 		line = line.split('.')
 		head = line[0]
-		subg = line[1]
+		line = line[1].split(':')
+		subg = line[0]
 		if head not in styles:
 			styles[head] = {}
 			styles[head]['nodes'] = {}
 			styles[head]['edges'] = {}
-		m = re.findall('([\w^=]*)=(\w*)',line[2])
+		if len(line) > 1: m = re.findall('([\w^=]*)=(\w*)',line[1])
 		for g in m:
-			styles[head][subg][g[0]] = g[1]
+			styles[head][subg].update( ((g[0],g[1]),))
 	return styles
 	
 
