@@ -13,6 +13,7 @@ def main():
 	f_out_dot = 'graphdlv.dot' 
 	f_out_pdf = 'graphdlv.pdf' 
 	f_out_graph = 'graph.p'
+	f_out_styles = 'styles.p'
 
 	rules = pickle.load(open(sys.argv[1], 'rb'))
 	s = open(sys.argv[2]).read()
@@ -24,6 +25,7 @@ def main():
 	#pp.pprint(g)	
 	draw(g, styles, f_out_dot, f_out_pdf)
 	pickle.dump(g, open(f_out_graph, 'wb'))
+	pickle.dump(styles, open(f_out_styles, 'wb'))
 
 
 #Creates edge tuples and nodes from aux firings and places into graph map
@@ -55,8 +57,7 @@ def graph_map(rules, s):
 		
 		# Body -> Aux
 		for t in p_list[1:]:
-			pred = t[0]
-			term_i = t[1]
+			pred, term_i = t[0], t[1]
 			atom = pred + '('
 			for i in term_i:
 				atom = atom + aux_terms[i] + ','
@@ -73,6 +74,7 @@ def graph_map(rules, s):
 
 def read_styles(f_in):
 	styles = {}
+	styles.update({'top_level':{}})
 	s = open(f_in,'rb').readlines() 
 	for line in s:
 		line = line.split('.')

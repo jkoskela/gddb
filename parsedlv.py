@@ -1,25 +1,16 @@
-# ------------------------------------------------------------
+#------------------------------------------------------------------------------------------
 # parsedlv.py
 #
 # tokenizer for the Datalog language
 # Adapted from parseddl.py by Eric Gribkoff
-# ------------------------------------------------------------
+#------------------------------------------------------------------------------------------
 import sys
 import ply.lex as lex
 import pickle
 import re
 
-#-------------------------------------------------------------
+#------------------------------------------------------------------------------------------
 # Class Definitions
-
-# For a given atom such as aux(X,Y,Z)
-# Transforms a string such as '(Z,X,Y)' into a list of indexes into terms of the atom(2, 0, 1) 
-def str_to_index(term_map, s):
-	s = s.split(',')
-	l = [] 
-	for st in s:
-		l.append(term_map[st])
-	return l		
 
 class Atom:
 	def __init__(self, predicate, terms):
@@ -28,19 +19,11 @@ class Atom:
 		self.terms_list = re.split('\W+', terms)
 	def __str__(self):
 		return self.predicate + '(' + self.terms + ')'
-	def __repr__(self):
-		return self.predicate + '(' + self.terms + ')'
-
 
 # Creates mapping from firing atom to the head and body of the associated clause 
-# For instance the rules:
-# anc(X,Z) :- anc(X,Y), anc(Y,Z).
-# Will generate clause
-# {anc_aux_index:[('anc', [0, 2]), ('anc', [0, 1]), ('anc', [1, 2])]}
 class Clause:
 	def __init__(self, head, body, index):
-		self.head = head   
-		self.body = body  
+		self.head, self.body = head, body   
 		self.aux_terms = set(head.terms_list)
 		self.aux_key = '%s%s%s%s' % ('aux_', head.predicate, '_', index)
 		self.aux_str = self.aux_key + '('
@@ -52,11 +35,19 @@ class Clause:
 			self.term_map[elem] = i
 			self.aux_str = self.aux_str + elem + ','
 		self.aux_str = self.aux_str.rstrip(',') + ')'
-		t_clause = [(head.predicate, str_to_index(self.term_map, head.terms))]
+		t_clause = [(head.predicate, self.str_to_index(head.terms))]
 		for atom in self.body:
-			t_clause.append((atom.predicate, str_to_index(self.term_map, atom.terms)))
-		self.clause_pair = {self.aux_key: t_clause}
+			t_clause.append((atom.predicate, self.str_to_index(atom.terms)))
+		self.clause_map = {self.aux_key: t_clause}
 
+	# For a given atom such as aux(X,Y,Z)
+	# Transforms a string such as '(Z,X,Y)' into a list of indexes into terms of the atom(2, 0, 1) 
+	def str_to_index(self, s):
+		s = s.split(',')
+		l = [] 
+		for st in s:
+			l.append(self.term_map[st])
+		return l		
 
 	def __str__(self):
 		st = '%s :- %s. \n%s :- ' % (self.head, self.aux_str, self.aux_str)
@@ -64,10 +55,9 @@ class Clause:
 			st += '%s,' % atom
 		st += self.body[-1].__str__() + '.'
 		return st
+
 #------------------------------------------------------------------------------------------
 # Tokenizer
-
-#Implement comments.
 
 # List of reserved names. Checked by the t_ID function
 reserved = {'not' : 'NOT'}
@@ -117,7 +107,7 @@ def t_comment(t):
     pass
 
 
-#-------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------
 # Parser
 
 lexer = lex.lex()
@@ -146,7 +136,7 @@ def p_clause_single(p):
     global aux_index
     c = Clause(p[1], p[3], aux_index)
     aux_index = aux_index + 1
-    clause_map.update(c.clause_pair)
+    clause_map.update(c.clause_map)
     p[0] = c.__str__()
 
 def p_terms_plural(p):

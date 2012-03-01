@@ -1,4 +1,4 @@
-The main script is parse. 
+The main script is graphdlv. 
 It will create a pdf and dot file.
 Usage is :
-parse [rules] [facts] [styles]
+graphdlv [rules] [facts] [styles]
