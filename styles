@@ -1,7 +1,10 @@
+root.all:          {bgcolor=#336699 ranksep=2}
+root.nodes:        {shape=plaintext}
+root.edges:        {dir=forward}
 edge.edges:        {color=blue}  
-edge.nodes:        {color=pink shape=box}
-anc.edges:         {style=invis}
-anc.nodes:         {constraint=false}
+edge.nodes:        {color=pink}
+anc.edges:         
+anc.nodes:         {root=true}
 com_anc.edges:     {color=yellow}
 com_anc.nodes:       
 aux.edges:                
