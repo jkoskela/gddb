@@ -33,6 +33,10 @@ class GraphCMD(cmd.Cmd):
 	def do_clear(self,line):
 		"""Clear all styles from the graph."""
 		self.styles = defaultdict(lambda: defaultdict(lambda: {}))	
+
+	def do_layout(self,line):
+		"""Set layout of graph.\nUsage: layout [dot|circo|neato|twopi|fdp|sfdp]"""
+		self.layout = line
 	
 	def do_ls(self, line):
 		"""List subgraphs or attributes of the graph.\nUsage: ls [attr | subg]\n"""
@@ -59,36 +63,37 @@ class GraphCMD(cmd.Cmd):
 			for subg_k,subg_v in self.styles.iteritems():
 				if subg_k == 'root': continue
 				print subg_k + ':' 
-				if subg_v['nodes']: print '  Node Attributes:'
+				if subg_v['nodes']: 
+					print '  Node Attributes:'
 				for key,value in subg_v['nodes'].iteritems(): 
 					print ('    %s=%s') % (key,value) 
-				if subg_v['edges']: print '  Edge Attributes:'
+				if subg_v['edges']: 
+					print '  Edge Attributes:'
 				for key,value in subg_v['edges'].iteritems(): 
 					print ('    %s=%s') % (key,value) 
 		else:
 			print "***Incorrect ls option***"
 		print 
 
-		if(self.auto):
-			draw(self.graph, self.styles, f_out_dot, f_out_pdf)
+		if(self.auto): 	draw(self.graph, self.styles, self.layout)
 			
 			
 
 	def do_draw(self,line):
-		"""Draw graph format. Default layout format is .dot and pdf.\n Usage: draw """
-		#"""Draw graph format. Default layout format is .dot and pdf.\n Usage: draw [dot|neato|circo]"""
-		#TODO ALTERNATE LAYOUT CIRCO, NEATO, ECT...
-		draw(self.graph, self.styles, f_out_dot, f_out_pdf)
+		"""Draw graph format. Default layout format is .dot and pdf."""
+		draw(self.graph, self.styles, self.layout)
 	
-	def auto_false(self):
+	def my_init(self):
 		self.auto = False 
+		self.style = 'dot'
+		
     
 	def do_EOF(self, line):
 		return True
 
 if __name__ == '__main__':
 	c = GraphCMD()
-	c.auto_false()
+	c.my_init()
 	if(len(sys.argv) < 3):
 		print "Usage int.py [graph dump] [styles]"
 		sys.exit(1)

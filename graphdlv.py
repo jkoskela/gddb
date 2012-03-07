@@ -6,13 +6,14 @@ from collections import defaultdict
 #debug
 import pprint
 
+f_out_dot = 'graphdlv.dot' 
+f_out_pdf = 'graphdlv.pdf' 
+f_out_graph = 'graph.p'
+
 def main():
 	if(len(sys.argv) < 4):
 		print('usage: python parse.py [parse map] [dlv output] [styles]  \n')
 		sys.exit(1)
-	f_out_dot = 'graphdlv.dot' 
-	f_out_pdf = 'graphdlv.pdf' 
-	f_out_graph = 'graph.p'
 
 	rules = pickle.load(open(sys.argv[1], 'rb'))
 	s = open(sys.argv[2]).read()
@@ -22,7 +23,7 @@ def main():
 	#pp = pprint.PrettyPrinter(indent=4)
 	#pp.pprint(styles)	
 	#pp.pprint(g)	
-	draw(g, styles, f_out_dot, f_out_pdf)
+	draw(g, styles, 'dot')
 
 	pickle.dump(g, open(f_out_graph, 'wb'))
 
@@ -86,12 +87,10 @@ def read_styles(f_in):
 	return styles
 	
 
-def draw(graph, styles, f_out_dot, f_out_pdf):
+def draw(graph, styles, layout):
 	default = {}
 	G = pgv.AGraph()
 	
-	#TODO ALTERNATE LAYOUT CIRCO, NEATO, ECT...
-
 	#Set attributes for root graph.
 	#All is only implemented for root attributes such as ranksep, bgcolor ect.
 	all_attr = styles['root']['all']
@@ -112,8 +111,8 @@ def draw(graph, styles, f_out_dot, f_out_pdf):
 		G.add_nodes_from(subg['nodes'], **node_attr)
 		G.add_edges_from(subg['edges'], **edge_attr)
 		
-	G.draw(f_out_dot,prog='dot')
-	G.draw(f_out_pdf,prog='circo')
+	#G.draw('graphdlv.dot',prog='dot')
+	G.draw(f_out_pdf,prog=layout)
 	
 if __name__=="__main__":
 	main()
