@@ -1,7 +1,9 @@
-root.all:          {bgcolor=#336699 ranksep=2}
+root.graph:        {bgcolor=#336699 ranksep=2}
 root.nodes:        {shape=plaintext}
 root.edges:        {dir=forward}
+edge.graph:        {rank=source}  
 edge.edges:        {color=blue}  
+edge.nodes:        {color=pink}
 edge.nodes:        {color=pink}
 anc.edges:         
 anc.nodes:         {root=true}

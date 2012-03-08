@@ -8,5 +8,5 @@ fi
 python parsedlv.py $1 > dlv_aux_rules
 ./dlv dlv_aux_rules $2 > dlv_out
 python graphdlv.py parse_map.p dlv_out $3 > debug
-#rm parse_map.p graph.p styles.p *.pyc
+rm *.pyc
 #dot -Tpdf -o graph.pdf graph_dlv.dot

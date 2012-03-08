@@ -17,7 +17,7 @@ class GraphCMD(cmd.Cmd):
 	def do_set(self, line):
 		"""Set attribute of the graph or subgraphs.\nUsage: set [subgraph] [edge|nodes] [attribute] [value]\n"""
 		if len(line.split()) < 4: 
-			print "Usage: set [subgraph] [all|edges|nodes] [attribute] [value]\nTo reference entire graph use 'root' for subgraph name.\n"
+			print "Usage: set [subgraph] [graph|edges|nodes] [attribute] [value]\nTo reference entire graph use 'root' for subgraph name.\n"
 			return
 		subg, en, attr, value = line.split()
 		self.styles[subg][en][attr] = value
@@ -47,9 +47,9 @@ class GraphCMD(cmd.Cmd):
 
 		elif line == 'attr':
 			print "----Attributes----"
-			if self.styles['root']['all']: 
+			if self.styles['root']['graph']: 
 				print 'Root Graph:'
-				for key,value in self.styles['root']['all'].iteritems(): 
+				for key,value in self.styles['root']['graph'].iteritems(): 
 					print ('    %s=%s') % (key,value) 
 				if self.styles['root']['nodes']: 
 					print '  Node Attributes:'
@@ -59,10 +59,13 @@ class GraphCMD(cmd.Cmd):
 					print '  Edge Attributes:'
 				for key,value in self.styles['root']['edges'].iteritems(): 
 					print ('    %s=%s') % (key,value) 
+				print
 
 			for subg_k,subg_v in self.styles.iteritems():
 				if subg_k == 'root': continue
 				print subg_k + ':' 
+				for key,value in self.styles[subg_k]['graph'].iteritems(): 
+					print ('    %s=%s') % (key,value) 
 				if subg_v['nodes']: 
 					print '  Node Attributes:'
 				for key,value in subg_v['nodes'].iteritems(): 
@@ -71,6 +74,7 @@ class GraphCMD(cmd.Cmd):
 					print '  Edge Attributes:'
 				for key,value in subg_v['edges'].iteritems(): 
 					print ('    %s=%s') % (key,value) 
+				print
 		else:
 			print "***Incorrect ls option***"
 		print 
@@ -85,7 +89,7 @@ class GraphCMD(cmd.Cmd):
 	
 	def my_init(self):
 		self.auto = False 
-		self.style = 'dot'
+		self.layout = 'dot'
 		
     
 	def do_EOF(self, line):
@@ -97,6 +101,8 @@ if __name__ == '__main__':
 	if(len(sys.argv) < 3):
 		print "Usage int.py [graph dump] [styles]"
 		sys.exit(1)
+	else:
+		print "Command line processor for manipulating output of graphdlv."
 	c.load_p(sys.argv[1], sys.argv[2])
 	c.cmdloop()
 	
