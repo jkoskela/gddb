@@ -1,0 +1,11 @@
+#!/bin/bash
+if [ $# -ne 3 ]
+then
+	echo "Usage: gddb [rules] [facts] [styles]"
+	exit
+fi
+
+python parsedlv.py $1 > dlv_aux_rules
+dlv dlv_aux_rules $2 > dlv_out
+python gddb.py parse_map.p dlv_out styles $3 
+rm *.pyc

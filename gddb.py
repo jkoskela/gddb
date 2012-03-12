@@ -1,18 +1,25 @@
+#----------------------------------------------------------------------
+# GDDB 
+# Jade Koskela
+# Command line interpreter for graphical datalog debugging.
+#----------------------------------------------------------------------
+
 import cmd
 import sys
 import pickle
-from graphdlv import draw
-from graphdlv import read_styles 
+import graphdlv
+draw = graphdlv.draw
 from collections import defaultdict
 
 f_out_dot = 'graphdlv.dot' 
 f_out_pdf = 'graphdlv.pdf' 
 
 class GraphCMD(cmd.Cmd):
-	"""Command line processor for manipulating output of graphdlv."""
-	def load_p(self, g, s):
-		self.graph = pickle.load(open(g, 'rb'))
-		self.styles = read_styles(s)
+	def load_p(self, parse_map, dlv_out, styles):
+		self.graph = graphdlv.Graph(parse_map, dlv_out)
+		self.styles = graphdlv.read_styles(styles)
+		self.auto = False 
+		self.layout = 'dot'
 		
 	def do_set(self, line):
 		"""Set attribute of the graph or subgraphs.\nUsage: set [subgraph] [edge|nodes] [attribute] [value]\n"""
@@ -37,15 +44,17 @@ class GraphCMD(cmd.Cmd):
 	def do_layout(self,line):
 		"""Set layout of graph.\nUsage: layout [dot|circo|neato|twopi|fdp|sfdp]"""
 		self.layout = line
+		if(self.auto): 	draw(self.graph, self.styles, self.layout)
 	
 	def do_ls(self, line):
-		"""List subgraphs or attributes of the graph.\nUsage: ls [attr | subg]\n"""
-		if line == 'subg':
+		"""List subgraphs or attributes of the graph.\nUsage: ls [-a | -s]\n
+		   Options: -a, -attributes; -s, -subgraphs"""
+		if line == '-s' or line == '-subgraphs':
 			print "----Subgraphs----"
-			for subg in self.graph.keys():
+			for subg in self.graph.p_graph.keys():
 				print subg
 
-		elif line == 'attr':
+		elif line == '-a' or line == '-attributes':
 			print "----Attributes----"
 			if self.styles['root']['graph']: 
 				print 'Root Graph:'
@@ -82,27 +91,54 @@ class GraphCMD(cmd.Cmd):
 		if(self.auto): 	draw(self.graph, self.styles, self.layout)
 			
 			
-
 	def do_draw(self,line):
-		"""Draw graph format. Default layout format is .dot and pdf."""
-		draw(self.graph, self.styles, self.layout)
-	
-	def my_init(self):
-		self.auto = False 
-		self.layout = 'dot'
-		
-    
+		"""Draw graph format. Default layout format is dot and pdf."""
+		draw(self.graph.p_graph, self.styles, self.layout)
+
+	def do_trace(self,line):
+		"""Render a trace graph for the atom."""	
+		line = line.split()
+		if line[0] == '-f' or line[0] =='-full':
+			trace_graph, styles = self.graph.trace_full(line[1])
+			if not trace_graph:
+				print 'Atom not found.'
+				return
+			draw(trace_graph, styles, self.layout)
+		else:	   
+			trace_graph = self.graph.trace(line[0])
+			if not trace_graph:
+				print 'Atom not found.'
+				return
+			draw(trace_graph, self.styles, self.layout)
+
+	def help_trace(self):
+		print '\n'.join(['Render a trace graph for the atom.',
+			'Usage: trace [Options] [atom]',
+			'Options: -f, -full',
+			'If full is specified the trace will be layed over the full graph.',
+			'The default is to render the trace only.\n'])
+
+	def help_ls(self):
+		print '\n'.join(['List subgraphs or attributes of the graph.',
+						 'Usage: ls [-a | -s]',
+		   				 'Options: -a, -attributes; -s, -subgraphs\n'])
+
 	def do_EOF(self, line):
 		return True
 
+	def options(self, opt_l):
+		'''Prints options'''
+		print 'Options'
+		for x,y in opt_l:
+			print '-%s, --%s' %(x,y)
+
 if __name__ == '__main__':
 	c = GraphCMD()
-	c.my_init()
 	if(len(sys.argv) < 3):
-		print "Usage int.py [graph dump] [styles]"
+		print "Usage gddb.py [parse_map] [dlv_out] [styles]"
 		sys.exit(1)
 	else:
-		print "Command line processor for manipulating output of graphdlv."
-	c.load_p(sys.argv[1], sys.argv[2])
+		print "Graphical Datalog Debugger"
+	c.load_p(sys.argv[1], sys.argv[2], sys.argv[3])
 	c.cmdloop()
 	
