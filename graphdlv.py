@@ -7,20 +7,25 @@
 
 import re
 import sys
+sys.path.append("./pydot")
 import pydot
+import dot_parser
 import pickle
 from collections import defaultdict
 from collections import namedtuple
 from collections import deque
 import pydot as pd
+import pdb
 
-f_out_dot = 'graphdlv.dot' 
-f_out_gif = 'graphdlv.gif' 
-f_out_pdf = 'graphdlv.pdf' 
-f_out_png = 'graphdlv.png' 
-tb_styles = { 'root':defaultdict(lambda:{},{'graph':{'bgcolor':'#336699','ranksep':'2'},'nodes':{'shape':'plaintext'}}), 
-			 'trace':defaultdict(lambda:{},{'edges':{'color':'red'}, 'nodes':{'fontcolor':'red'}}),
-			   'aux':defaultdict(lambda:{},{'nodes':{'shape':'point'}})}
+format_types = set(['gif', 'png', 'pdf', 'svg'])
+f_out_dot  = "graphdlv.dot"
+f_out_base = "graphdlv."
+tb_styles = {'root':defaultdict(lambda:{},{'graph':{'bgcolor':'#336699','ranksep':'2'},'nodes':{'shape':'plaintext'}}), 
+	     'trace':defaultdict(lambda:{},{'edges':{'color':'white'}, 'nodes':{'fontcolor':'white'}}),
+	     'aux':defaultdict(lambda:{},{'nodes':{'shape':'point'}})}
+d_styles  = {'root':defaultdict(lambda:{},{'nodes':{'shape':'plaintext'}}), 
+             'aux':defaultdict(lambda:{},{'nodes':{'shape':'point'}})}
+
 
 # Graph class. 
 # Parse map is a pickled dictionary of rule mappings created by parsedlv. 
@@ -30,7 +35,7 @@ class Graph:
 	def __init__(self, parse_map, dlv_output):
 		rules = pickle.load(open(parse_map))
 		dlv_out = open(dlv_output).read()
-		self.p_graph, self.adj_list = graph_map(rules, dlv_out)  #Graph is used for styling and rendering using pydot. Adj_list is used for tracing.
+		self.p_graph, self.adj_list = graph_map(rules, dlv_out) #Graph is used for styling & rendering using pydot. Adj_list is used for tracing.
 
 	#Returns the pydot graph for rendering of a trace only.
 	def trace(self, atom):
@@ -102,16 +107,13 @@ class Graph:
 		for k,subg in self.p_graph.iteritems():
 			for n in subg['nodes']:
 				if n not in t_set:
-					trace_graph['root']['nodes'].add(n)	
+					trace_graph[k]['nodes'].add(n)	
 			for e in subg['edges']:
 				if e not in t_set:
-					trace_graph['root']['edges'].add(e)	
+					trace_graph[k]['edges'].add(e)	
 		return trace_graph, styles
 
-
 		
-
-
 # Creates edge tuples and nodes from aux firings and places into graph maps.
 # There are two representations of the graph. 
 # graph is a collection of subgraphs for drawing and styling.
@@ -123,6 +125,7 @@ def graph_map(rules, dlv_out):
 	m = re.findall('(aux[^(]*)\(([^)]*)\)', dlv_out)    #Grab all aux tuples
 	graph = {}
 	graph['aux'] = {'nodes':set(), 'edges':set()}          #Create aux subgraph
+	
 	for g in m:
 		aux_count = aux_count + 1
 		aux = g[0]
@@ -135,15 +138,14 @@ def graph_map(rules, dlv_out):
 		head = p_list[0][0]                              #Create aux->edges, insert into graph and adj_list
 		atom = head + '('
 		term_i = p_list[0][1]
-		for i in term_i:								#Create head atom using mapping from aux atom
+		for i in term_i:				#Create head atom using mapping from aux atom
 			atom = atom + aux_terms[i] + ','
 		atom = atom.rstrip(',') + ')'
-		if head not in graph:							 #Create new subgraph if not existent
+		if head not in graph:				 #Create new subgraph if not existent
 			graph[head] = {'nodes': set(), 'edges':set()}
 
 		graph[head]['nodes'].add(atom)                   #Add nodes,edges to head subgraph     
 		graph[head]['edges'].add((aux_atom, atom))
-		#graph['aux']['edges'].add((aux_atom, atom))      #Out edges from aux belong to aux subgraph
 		adj_list[atom].enter.append(aux_atom)
 		adj_list[aux_atom].exit.append(aux_atom)         #Add nodes to adj list  
 		
@@ -157,7 +159,7 @@ def graph_map(rules, dlv_out):
 
 			if pred not in graph:
 				graph[pred] = {'nodes':set(), 'edges':set()}	#Create subgraph for body atoms if not existent
-			graph[pred]['nodes'].add(atom)					#Add nodes,edges to body predicates subgraphs
+			graph[pred]['nodes'].add(atom)				#Add nodes,edges to body predicates subgraphs
 			graph[pred]['edges'].add((atom, aux_atom))
 			adj_list[atom].exit.append(aux_atom)			#Add nodes to adj list 
 			adj_list[aux_atom].enter.append(atom)
@@ -167,6 +169,10 @@ def graph_map(rules, dlv_out):
 # Reads style sheets in from file.
 def read_styles(f_in):
 	styles = defaultdict(lambda: defaultdict(lambda: {}))
+	if not f_in:                                                                 #If no external style sheet was supplied
+		styles.update(d_styles)
+		pdb.set_trace()	
+		return styles 
 	s = open(f_in,'rb').readlines() 
 	for line in s:
 		line = line.split('.')
@@ -180,8 +186,8 @@ def read_styles(f_in):
 	
 	return styles
 	
-# Renders the graph to a png and dot file using the graphviz layout.
-def draw(graph, styles, layout):
+# Renders the graph to dot file using specified graphviz layout and file format.
+def draw(graph, styles, layout, render_set, out_format='pdf'):
 	G = pd.Dot()         #Dot is derived class of Graph
 
 	#Set attributes for root graph.
@@ -207,6 +213,8 @@ def draw(graph, styles, layout):
 	#Add remaining nodes and attributes by subgraph.
 	for key,subg in graph.iteritems():
 		if key =='aux': continue
+		if key not in render_set: continue  #All edges/nodes in subgraph are not added to graph
+				
 		node_attr = styles[key]['nodes']
 		edge_attr = styles[key]['edges']
 		graph_attr = styles[key]['graph']
@@ -214,6 +222,7 @@ def draw(graph, styles, layout):
 		subG.set_node_defaults(**node_attr)
 		subG.set_edge_defaults(**edge_attr)
 		subG.set_graph_defaults(**graph_attr)
+
 		for n in subg['nodes']:
 			n = pd.Node(n)
 			subG.add_node(n)
@@ -222,10 +231,22 @@ def draw(graph, styles, layout):
 			subG.add_edge(e)
 		G.add_subgraph(subG)
 
-	G.write_gif(f_out_gif,prog=layout)
 	G.write(f_out_dot,prog=layout)
-					
-# Returns the predicate of an atom																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																								
+	f_out = f_out_base + out_format 	
+	if out_format == 'pdf':
+		G.write_pdf(f_out,prog=layout)
+	elif out_format == 'png':
+		G.write_png(f_out,prog=layout)
+	elif out_format == 'gif':
+		G.write_gif(f_out,prog=layout)
+	elif out_format == 'jpeg':
+		G.write_jpeg(f_out,prog=layout)
+	elif out_format == 'ps':
+		G.write_ps(f_out,prog=layout)
+	else:
+		print 'File type not supported'	
+
+#Returns the predicate of an atom
 def predicate(atom):
-	m = re.search('([^(]*)', atom)
+	m = re.search('([^(]*)(.+)', atom)
 	return m.group(1)

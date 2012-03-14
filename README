@@ -1,4 +1,20 @@
-The main script is graphdlv. 
-It will create a pdf and dot file.
-Usage is :
-graphdlv [rules] [facts] [styles]
+Graphical Datalog Debugger
+by Jade Koskela
+
+This program will render the model of a datalog database using Graphviz.
+It provides tracing functionality, as well as interactive editing of styles.
+
+Input:
+  -Datalog rules
+  -Facts
+  -Style sheet
+
+Usage:
+  gddb rules facts styles
+
+Files:
+  -gddb         : Main script.
+  -parse_dlv.py : Parses datalog rules, creates auxiliary rules for input into dlv.
+  -graphdlv.py  : Module for setting styles and rendering output.
+  -gddb.py      : Command line interpreter for traceing and drawing.
+ 
