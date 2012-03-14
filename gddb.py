@@ -15,6 +15,8 @@ import pdb
 
 default_format = 'pdf'
 
+#TODO trace styles
+
 class GraphCMD(cmd.Cmd):
 	def load_p(self, parse_map, dlv_out, styles=False):
 		self.graph = graphdlv.Graph(parse_map, dlv_out)         #Graph class including adjacency list and pydot graph
@@ -157,15 +159,23 @@ class GraphCMD(cmd.Cmd):
 		"""Trace graph for the atom."""	
 		line = line.split()
 		if line[0] == '-f' or line[0] =='-full':
-			trace_graph, trace_styles = self.graph.trace_full(line[1])
+			trace_graph = self.graph.trace_full(line[1])
+			trace_styles = graphdlv.tb_styles           #Default trace styles defined in graphdlv
+			if len(line) > 2:
+				try:
+					trace_styles['trace']['edges'] = {'color':line[2]}
+					trace_styles['trace']['nodes'] = {'fontcolor':line[2]}
+				except:
+					print 'Color not supported.'
 		else:	   
+			#Partial trace retains styles of parent graph.
 			trace_graph = self.graph.trace(line[0])
 			trace_styles = self.styles
 		if not trace_graph:
 			print 'Atom not found.'
 			return
 
-		if not self.trace:               #Save old graph.
+		if not self.trace:               #Save parent graph.
 			self.save_g, self.save_s = deepcopy(self.p_graph), deepcopy(self.styles)
 		self.p_graph, self.styles = trace_graph, trace_styles
 		self.trace = True
@@ -182,9 +192,9 @@ class GraphCMD(cmd.Cmd):
 	
 	def help_trace(self):
 		print '\n'.join(['Render a trace graph for the atom.',
-			'Usage: trace [Options] [atom]',
+			'Usage: trace [Options] [atom] [color]',
 			'Options: -f, -full',
-			'If full is specified the trace will be layed over the full graph.',
+			'If full is specified the trace will be drawn along with the parent graph.',
 			'The default is to render the trace only.\n'])
 
 	def help_ls(self):

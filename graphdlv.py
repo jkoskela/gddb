@@ -20,11 +20,13 @@ import pdb
 format_types = set(['gif', 'png', 'pdf', 'svg'])
 f_out_dot  = "graphdlv.dot"
 f_out_base = "graphdlv."
-tb_styles = {'root':defaultdict(lambda:{},{'graph':{'bgcolor':'#336699','ranksep':'2'},'nodes':{'shape':'plaintext'}}), 
-	     'trace':defaultdict(lambda:{},{'edges':{'color':'white'}, 'nodes':{'fontcolor':'white'}}),
-	     'aux':defaultdict(lambda:{},{'nodes':{'shape':'point'}})}
-d_styles  = {'root':defaultdict(lambda:{},{'nodes':{'shape':'plaintext'}}), 
-             'aux':defaultdict(lambda:{},{'nodes':{'shape':'point'}})}
+tb_styles = defaultdict(lambda:defaultdict(lambda:{}),
+            {'root':defaultdict(lambda:{},{'graph':{'bgcolor':'#336699','ranksep':'2'},'nodes':{'shape':'plaintext'}}), 
+             'trace':defaultdict(lambda:{},{'edges':{'color':'white'}, 'nodes':{'fontcolor':'white'}}),
+             'aux':defaultdict(lambda:{},{'nodes':{'shape':'point'}})})
+d_styles  = defaultdict(lambda:defauldict(lambda:{}),
+            {'root':defaultdict(lambda:{},{'nodes':{'shape':'plaintext'}}), 
+             'aux':defaultdict(lambda:{},{'nodes':{'shape':'point'}})})
 
 
 # Graph class. 
@@ -41,6 +43,7 @@ class Graph:
 	def trace(self, atom):
 		if atom not in self.adj_list:
 			return 
+		
 		trace_graph = defaultdict(lambda: {'nodes':set(), 'edges':set()})
 		pred = predicate(atom)
 		trace_graph[pred]['nodes'].add(atom)
@@ -70,11 +73,10 @@ class Graph:
 	#Returns a graph,style tuple of a trace rendered with the main graph.
 	def trace_full(self, atom):
 		if atom not in self.adj_list:
-			return ('','')
+			return (None)
+		
 		trace_graph = defaultdict(lambda: {'nodes':set(), 'edges':set()})
-		styles = defaultdict(lambda: defaultdict(lambda: {}))
 		t_set = set()
-		styles.update(tb_styles)
 
 		pred = predicate(atom)
 		trace_graph['trace']['nodes'].add(atom)
@@ -111,7 +113,7 @@ class Graph:
 			for e in subg['edges']:
 				if e not in t_set:
 					trace_graph[k]['edges'].add(e)	
-		return trace_graph, styles
+		return trace_graph
 
 		
 # Creates edge tuples and nodes from aux firings and places into graph maps.
@@ -171,7 +173,6 @@ def read_styles(f_in):
 	styles = defaultdict(lambda: defaultdict(lambda: {}))
 	if not f_in:                                                                 #If no external style sheet was supplied
 		styles.update(d_styles)
-		pdb.set_trace()	
 		return styles 
 	s = open(f_in,'rb').readlines() 
 	for line in s:
@@ -205,6 +206,7 @@ def draw(graph, styles, layout, render_set, out_format='pdf'):
 	node_attr = styles['aux']['nodes']
 	subG.set_graph_defaults(**graph_attr)
 	subG.set_node_defaults(**node_attr)
+
 	for n in graph['aux']['nodes']:
 		n = pd.Node(n)
 		subG.add_node(n)

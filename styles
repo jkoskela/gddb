@@ -1,4 +1,4 @@
-root.graph:        {bgcolor=#336699, ranksep=3}
+root.graph:        {bgcolor=#336699, ranksep=2}
 root.nodes:        {shape=plaintext}
 root.edges:        {dir=forward}
 edge.graph:          
@@ -17,3 +17,5 @@ not not_lca.edges: {color=green}
 not not_lca.nodes:   
 lca.edges:         {color=orange}
 lca.nodes:           
+trace.edges:       {color=red}
+trace.nodes:       {color=red}
