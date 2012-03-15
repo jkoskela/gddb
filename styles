@@ -14,8 +14,8 @@ aux.nodes:         {shape=point}
 not_lca.edges:     {color=purple}
 not_lca.nodes:       
 not not_lca.edges: {color=green}
-not not_lca.nodes:   
+not not_lca.nodes: {shape=square}  
 lca.edges:         {color=orange}
 lca.nodes:           
-trace.edges:       {color=red}
-trace.nodes:       {color=red}
+trace.edges:       {color=white}
+trace.edges:       {color=white}

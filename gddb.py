@@ -6,7 +6,6 @@
 
 import cmd
 import sys
-import pickle
 import graphdlv
 draw = graphdlv.draw
 from copy import deepcopy
@@ -14,17 +13,16 @@ from collections import defaultdict
 import pdb
 
 default_format = 'pdf'
-
-#TODO trace styles
+default_layout = 'dot'
 
 class GraphCMD(cmd.Cmd):
 	def load_p(self, parse_map, dlv_out, styles=False):
 		self.graph = graphdlv.Graph(parse_map, dlv_out)         #Graph class including adjacency list and pydot graph
 		self.p_graph = self.graph.p_graph                       #Pydot graph for rendering
 		self.auto = False 
-		self.layout = 'dot'
-		self.saved_styles = defaultdict(lambda:{'nodes':{}, 'styles':{}})   #For saving styles when hide/show predicates
+		self.layout = default_layout 
 		self.fformat = default_format
+		self.saved_styles = defaultdict(lambda:{'nodes':{}, 'styles':{}})   #For saving styles when hide/show predicates
 		self.trace = False
 		self.styles = graphdlv.read_styles(styles)
 		self.render_set = set(self.p_graph.keys())
@@ -62,7 +60,7 @@ class GraphCMD(cmd.Cmd):
 		if not line:
 			print "Usage: hide [predicate]"
 		elif line in self.styles:
-			self.saved_styles[line]['nodes'] = deepcopy(self.styles[line]['nodes']);
+			self.saved_styles[line]['nodes'] = deepcopy(self.styles[line]['nodes']);   #Backup style
 			self.saved_styles[line]['edges'] = deepcopy(self.styles[line]['edges']);
 			self.styles[line]['edges']['style'] = 'invis'	
 			self.styles[line]['nodes']['style'] = 'invis'	
@@ -74,14 +72,14 @@ class GraphCMD(cmd.Cmd):
 		"""Removes a predicate subgraph including all nodes and edges incident to those nodes.\nUsage: remove [predicate]"""
 		if not line:
 			print "Usage: remove [predicate]"
-		elif line in self.styles:
+		elif line in self.render_set:
 			self.render_set.remove(line)
 			if(self.auto): 	draw(self.p_graph, self.styles, self.layout, self.render_set, self.fformat)
 		else:
 			print 'Predicate not found.'
 
 	def do_add(self, line):
-		"""Add a predicate subgraph including all nodes and edges incident to those nodes.\nUsage: add [predicate]"""
+		"""Add a predicate subgraph back to graph. Undo remove.\nUsage: add [predicate]"""
 		if not line:
 			print "Usage: add [predicate]"
 		elif line in self.styles:
@@ -97,13 +95,20 @@ class GraphCMD(cmd.Cmd):
 
 	def do_layout(self,line):
 		"""Set layout program of the graph.\nUsage: layout [dot|circo|neato|twopi|fdp|sfdp]"""
-		self.layout = line
-		if(self.auto): 	draw(self.p_graph, self.styles, self.layout, self.render_set, self.fformat)
+		if line in graphdlv.layout_types:
+			self.layout = line
+			if(self.auto): 	
+				draw(self.p_graph, self.styles, self.layout, self.render_set, self.fformat)
+		else:
+			print 'Layout not supported.'	
 
 	def do_format(self,line):
 		"""Set file format of the graph.\nUsage: format [pdf|gif|jpeg|png]"""
-		self.fformat = line
-		if(self.auto): 	draw(self.p_graph, self.styles, self.layout, self.render_set, self.fformat)
+		if line in graphdlv.format_types:
+			self.fformat = line
+			if(self.auto): 	draw(self.p_graph, self.styles, self.layout, self.render_set, self.fformat)
+		else:
+			print 'Format not supported.'	
 	
 	def do_ls(self, line):
 		"""List subgraphs or attributes of the graph.\nUsage: ls [-a | -s]\n
@@ -150,7 +155,7 @@ class GraphCMD(cmd.Cmd):
 			
 			
 	def do_draw(self, line):
-		"""Draw graph. Default format is pdf unless modified.\nUsage: draw [pdf|ps|jpeg|gif|png]"""
+		"""Draw graph. Default format is pdf.\nUsage: draw [pdf|ps|jpeg|gif|png]"""
 		if not line:
 			 line = self.fformat
 		draw(self.p_graph, self.styles, self.layout, self.render_set, line)
@@ -160,15 +165,12 @@ class GraphCMD(cmd.Cmd):
 		line = line.split()
 		if line[0] == '-f' or line[0] =='-full':
 			trace_graph = self.graph.trace_full(line[1])
-			trace_styles = graphdlv.tb_styles           #Default trace styles defined in graphdlv
+			trace_styles = graphdlv.trace_color(self.styles)    #Remove coloring from non trace subgraphs
 			if len(line) > 2:
-				try:
-					trace_styles['trace']['edges'] = {'color':line[2]}
-					trace_styles['trace']['nodes'] = {'fontcolor':line[2]}
-				except:
-					print 'Color not supported.'
+				trace_styles['trace']['edges'] = {'color':line[2]}
+				trace_styles['trace']['nodes'] = {'fontcolor':line[2]}
 		else:	   
-			#Partial trace retains styles of parent graph.
+			#Partial trace retains colors of parent graph.
 			trace_graph = self.graph.trace(line[0])
 			trace_styles = self.styles
 		if not trace_graph:
@@ -214,7 +216,7 @@ class GraphCMD(cmd.Cmd):
 if __name__ == '__main__':
 	c = GraphCMD()
 	if len(sys.argv) < 3:
-		print "Usage gddb.py [parse_map] [dlv_out] [styles]"
+		print "Usage: gddb.py [parse_map] [dlv_out] [styles]"
 		sys.exit(1)
 	else:
 		print "Graphical Datalog Debugger"

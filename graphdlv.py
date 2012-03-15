@@ -16,15 +16,14 @@ from collections import namedtuple
 from collections import deque
 import pydot as pd
 import pdb
+from copy import deepcopy
 
-format_types = set(['gif', 'png', 'pdf', 'svg'])
+format_types = set(['gif', 'png', 'pdf', 'jpeg', 'ps'])
+layout_types = set(['dot','neato','twopi','circo','fdp','sfdp'])
 f_out_dot  = "graphdlv.dot"
 f_out_base = "graphdlv."
-tb_styles = defaultdict(lambda:defaultdict(lambda:{}),
-            {'root':defaultdict(lambda:{},{'graph':{'bgcolor':'#336699','ranksep':'2'},'nodes':{'shape':'plaintext'}}), 
-             'trace':defaultdict(lambda:{},{'edges':{'color':'white'}, 'nodes':{'fontcolor':'white'}}),
-             'aux':defaultdict(lambda:{},{'nodes':{'shape':'point'}})})
-d_styles  = defaultdict(lambda:defauldict(lambda:{}),
+t_color = 'black'                                       #Default color for elements not included in the trace subgraph
+d_styles  = defaultdict(lambda:defauldict(lambda:{}),   #Default styles
             {'root':defaultdict(lambda:{},{'nodes':{'shape':'plaintext'}}), 
              'aux':defaultdict(lambda:{},{'nodes':{'shape':'point'}})})
 
@@ -37,9 +36,10 @@ class Graph:
 	def __init__(self, parse_map, dlv_output):
 		rules = pickle.load(open(parse_map))
 		dlv_out = open(dlv_output).read()
-		self.p_graph, self.adj_list = graph_map(rules, dlv_out) #Graph is used for styling & rendering using pydot. Adj_list is used for tracing.
+		self.subg_dict, self.adj_list = graph_map(rules, dlv_out) #subg_dict is used for styling & rendering using pydot. adj_list is used for tracing.
 
-	#Returns the pydot graph for rendering of a trace only.
+
+	#Returns the pydot graph for rendering of the trace only, excluding nodes not included in the trace.
 	def trace(self, atom):
 		if atom not in self.adj_list:
 			return 
@@ -106,7 +106,7 @@ class Graph:
 						trace_graph['trace']['nodes'].add(u)
 						trace_graph['trace']['edges'].add((u,v))
 
-		for k,subg in self.p_graph.iteritems():
+		for k,subg in self.subg_dict.iteritems():
 			for n in subg['nodes']:
 				if n not in t_set:
 					trace_graph[k]['nodes'].add(n)	
@@ -114,6 +114,12 @@ class Graph:
 				if e not in t_set:
 					trace_graph[k]['edges'].add(e)	
 		return trace_graph
+	
+	#check for existence of atom in adj_list
+	def check_tuple(self,atom):
+		if atom in adj_list:
+			return True
+		return False
 
 		
 # Creates edge tuples and nodes from aux firings and places into graph maps.
@@ -125,7 +131,7 @@ def graph_map(rules, dlv_out):
 	adj_list = defaultdict(lambda: adj([],[]))          #Create an adjancecy list with in and out edges 
 	aux_count = 0
 	m = re.findall('(aux[^(]*)\(([^)]*)\)', dlv_out)    #Grab all aux tuples
-	graph = {}
+	graph = defaultdict(lambda:{'nodes':set(), 'edges':set()})
 	graph['aux'] = {'nodes':set(), 'edges':set()}          #Create aux subgraph
 	
 	for g in m:
@@ -143,8 +149,6 @@ def graph_map(rules, dlv_out):
 		for i in term_i:				#Create head atom using mapping from aux atom
 			atom = atom + aux_terms[i] + ','
 		atom = atom.rstrip(',') + ')'
-		if head not in graph:				 #Create new subgraph if not existent
-			graph[head] = {'nodes': set(), 'edges':set()}
 
 		graph[head]['nodes'].add(atom)                   #Add nodes,edges to head subgraph     
 		graph[head]['edges'].add((aux_atom, atom))
@@ -154,13 +158,15 @@ def graph_map(rules, dlv_out):
 		# Body -> Aux                                   #Create body->aux edges
 		for t in p_list[1:]:
 			pred, term_i = t[0], t[1]
-			atom = pred + '('
-			for i in term_i:
-				atom = atom + aux_terms[i] + ','
-			atom = atom.rstrip(',') + ')'
+			m = re.search('(not [^(]+)', pred)    	             #Find negations
+			if m:
+				atom = m.group(1)                          #Single atom for all negations of a given predicate
+			else:
+				atom = pred + '('
+				for i in term_i:
+					atom = atom + aux_terms[i] + ','
+				atom = atom.rstrip(',') + ')'
 
-			if pred not in graph:
-				graph[pred] = {'nodes':set(), 'edges':set()}	#Create subgraph for body atoms if not existent
 			graph[pred]['nodes'].add(atom)				#Add nodes,edges to body predicates subgraphs
 			graph[pred]['edges'].add((atom, aux_atom))
 			adj_list[atom].exit.append(aux_atom)			#Add nodes to adj list 
@@ -252,3 +258,20 @@ def draw(graph, styles, layout, render_set, out_format='pdf'):
 def predicate(atom):
 	m = re.search('([^(]*)(.+)', atom)
 	return m.group(1)
+
+#Sets all elements not in trace to have color t_color 
+#Returns new style dict
+def trace_color(styles):
+	new_styles = deepcopy(styles)
+	for key,subg in new_styles.iteritems():
+		if key == 'trace': continue
+		for attr,value in subg['nodes'].iteritems():
+			if attr == 'fontcolor':
+				subg['nodes']['fontcolor'] = t_color	
+		for attr,value in subg['edges'].iteritems():
+			if attr == 'color':
+				subg['edges']['color'] = t_color
+	return new_styles
+
+	
+
