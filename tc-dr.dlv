@@ -1,0 +1,3 @@
+tc(X,Y) :- e(X,Y).
+tc(X,Y) :- tc(X,Z), tc(Z,Y).
+
