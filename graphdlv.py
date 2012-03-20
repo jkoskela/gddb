@@ -55,6 +55,7 @@ def graph_map(rules, dlv_out):
 	m = re.findall('(aux[^(]*)\(([^)]*)\)', dlv_out)           #Grab all aux tuples
 	graph = defaultdict(lambda:{'nodes':set(), 'edges':set()})
 	graph['aux'] = {'nodes':set(), 'edges':set()}               #Create aux subgraph
+	negations = set()	
 	
 	for g in m:
 		aux_count = aux_count + 1
@@ -80,19 +81,26 @@ def graph_map(rules, dlv_out):
 		# Body -> Aux                                   #Create body->aux edges
 		for t in p_list[1:]:
 			pred, term_i = t[0], t[1]
-			m = re.search('(not [^(]+)', pred)    	      #Find negations
+			atom = pred + '('
+			for i in term_i:
+				atom = atom + aux_terms[i] + ','
+			atom = atom.rstrip(',') + ')'
+
+			m = re.search('not (.+)', pred)       	      #Find negations
 			if m:
-				atom = m.group(1)                      #Single atom for all negations of a given predicate
-			else:
-				atom = pred + '('
-				for i in term_i:
-					atom = atom + aux_terms[i] + ','
-				atom = atom.rstrip(',') + ')'
+				n_pred = m.group(1)	
+				negations.add(n_pred)                    
+				graph['negation_out']['edges'].add(('{%s}' % n_pred, atom))
 
 			graph[pred]['nodes'].add(atom)				#Add nodes,edges to body predicates subgraphs
 			graph[pred]['edges'].add((atom, aux_atom))
 			adj_list[atom].exit.append(aux_atom)			#Add nodes to adj list 
 			adj_list[aux_atom].enter.append(atom)
+
+	for pred in negations:                                                      #Create negation class
+		graph['negation']['nodes'].add('{%s}' % pred)
+		for n in graph[pred]['nodes']:
+			graph['negation_in']['edges'].add((n,'{%s}' % pred))
 
 	return (graph, adj_list)
 
@@ -130,7 +138,7 @@ def draw(graph, styles, layout, render_set, out_format, trace={}):
 
 	#Aux and trace attributes must be added first or will default to styles in incident edges.
 	#Aux does not have any edges of it's own. All edges belong to other predicates.
-	subG = pd.Subgraph('aux')
+	subG = pd.Subgraph('"aux"')
 	node_attr = styles['aux']['nodes']
 	subG.set_graph_defaults(**graph_attr)
 	subG.set_node_defaults(**node_attr)
@@ -147,7 +155,7 @@ def draw(graph, styles, layout, render_set, out_format, trace={}):
 		node_attr = styles[key]['nodes']
 		edge_attr = styles[key]['edges']
 		graph_attr = styles[key]['graph']
-		subG = pd.Subgraph(key)
+		subG = pd.Subgraph('"%s"'% key)
 		subG.set_node_defaults(**node_attr)
 		subG.set_edge_defaults(**edge_attr)
 		subG.set_graph_defaults(**graph_attr)
@@ -210,17 +218,17 @@ def DFS(adj_list, v, trace, color_n):
 # Colors the full trace.
 def proc_ft(graph, trace, color):
 	for n in trace['nodes']:
-		pred = node_pred(n)
+		pred = '"%s"' % node_pred(n)
 		n = '"%s"' % n
 		n_ref = graph.get_subgraph(pred)[0].get_node(n)[0]
 		n_ref.set_fontcolor(color)
 	for e in trace['edges']:
-		pred = edge_pred(e)
+		pred = '"%s"' % edge_pred(e)
 		e = ('"%s"' % e[0], '"%s"' % e[1])
 		e_ref = graph.get_subgraph(pred)[0].get_edge(e)[0]
 		e_ref.set_color(color)
 	for e in trace['back_edges']:
-		pred = edge_pred(e)
+		pred = '"%s"' % edge_pred(e)
 		e = ('"%s"' % e[0], '"%s"' % e[1])
 		e_ref = graph.get_subgraph(pred)[0].get_edge(e)[0]
 		e_ref.set_color(color)
@@ -230,7 +238,7 @@ def proc_ft(graph, trace, color):
 # Styles backedges
 def proc_pt(graph, be):
 	for e in be:
-		pred = edge_pred(e)
+		pred = '"%s"' % edge_pred(e)
 		e = ('"%s"' % e[0], '"%s"' % e[1])
 		e_ref = graph.get_subgraph(pred)[0].get_edge(e)[0]
 		e_ref.set_style('dotted')
