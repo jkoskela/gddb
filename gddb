@@ -5,7 +5,14 @@ then
 	exit
 fi
 
-python parsedlv.py $1 > dlv_aux_rules
+python parsedlv.py $1 > dlv_aux_rules 2> err
+ERROR_SIZE=$(stat -c %s err)
+if [ $ERROR_SIZE != 0 ]
+then	
+	echo "There were parsing errors."
+	exit
+fi
+
 dlv dlv_aux_rules $2 > dlv_out
 if [ $# -eq 3 ]
 then
