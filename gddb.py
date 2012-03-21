@@ -174,13 +174,20 @@ class GraphCMD(cmd.Cmd):
 
 		if line[0] == '-f' or line[0] =='-full':
 			trace = graphdlv.trace(self.adj_list, line[1])
+			if not trace:
+				print 'Atom not found.'
+				return
 			trace_styles = graphdlv.trace_color(self.styles)   #Remove coloring from non trace subgraphs
 			if len(line) > 2:
 				trace_styles['trace']['color'] = {'color':line[2]}
 			trace_graph = self.subg_dict
 			t_type = 'full'
+
 		else:	   
 			trace = graphdlv.trace(self.adj_list, line[0]) 
+			if not trace:
+				print 'Atom not found.'
+				return
 			trace_styles = self.styles                         #Partial trace retains colors of parent graph.
 			trace_graph = graphdlv.pt_graph(trace)
 			t_type = 'partial'
