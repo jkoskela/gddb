@@ -6,6 +6,7 @@
 
 import cmd
 import sys
+import re
 import graphdlv
 draw = graphdlv.draw
 from copy import deepcopy
@@ -163,11 +164,11 @@ class GraphCMD(cmd.Cmd):
 
 
 	def do_trace(self,line):
-		"""Trace provenance for the atom."""	
-		line = line.split()
+		"""Trace the atom."""	
 		if not line:
 			print 'Usage: trace [-f] atom [color]'
 			return
+		line = self.check_whitespace(line)
 		if not self.trace: 
 			self.save_g, self.save_s = self.subg_dict, self.styles # Backup main graph.  	
 		else: self.untrace()
@@ -216,8 +217,9 @@ class GraphCMD(cmd.Cmd):
 			'Usage: trace [Options] [atom] [color]',
 			'Options: -f, -full',
 			'If full is specified the trace will be drawn along with the parent graph.',
-			'The default is to render the trace only.\n,'
-			'Partial trace retains styles of the parent graph. Full trace will render trace as color. Default color red.'])
+			'The default is to render the trace only.',
+			'Partial trace retains styles of the parent graph. Full trace will render trace as color. Default color red.',
+			'If atom has whitespace, use single quotes.'])
 
 	def help_ls(self):
 		print '\n'.join(['List subgraphs or attributes of the graph.',
@@ -232,6 +234,19 @@ class GraphCMD(cmd.Cmd):
 		print 'Options'
 		for x,y in opt_l:
 			print '-%s, --%s' %(x,y)
+	
+	def check_whitespace(self, line):
+		m = re.search('(not .+)', line)
+		if not m: return line
+		atom = m.group(1)
+		line = re.sub('not .+', 'x', line)
+		line = line.split()
+		if line[0] == '-f' or line[0] == '-full':
+			line[1] = atom
+		else:
+			line[0] = atom
+		return line
+		
 
 if __name__ == '__main__':
 	c = GraphCMD()
