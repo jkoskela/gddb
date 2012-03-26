@@ -11,7 +11,6 @@ import graphdlv
 draw = graphdlv.draw
 from copy import deepcopy
 from collections import defaultdict
-import pdb
 
 default_format = 'pdf'
 default_layout = 'dot'
@@ -22,19 +21,18 @@ class GraphCMD(cmd.Cmd):
 		self.auto = False 
 		self.layout = default_layout 
 		self.fformat = default_format
-		self.saved_styles = defaultdict(lambda:{'nodes':{}, 'styles':{}})   #For saving styles when hide/show predicates
+		self.saved_styles = defaultdict(lambda:{'nodes':{}, 'styles':{}})  
 		self.styles = graphdlv.read_styles(styles)
-		self.render_set = set(self.subg_dict.keys())
 		self.trace = None
 		
 	def do_set(self, line):
-		"""Set attribute of the graph or subgraphs.\nUsage: set [subgraph] [edge|nodes] [attribute] [value]\n"""
+		"""Set attribute of the graph or subgraphs.\nUsage: set [subgraph] [edges|nodes] [attribute] [value]\n"""
 		if len(line.split()) is not 4: 
 			print "Usage: set [subgraph] [graph|edges|nodes] [attribute] [value]\nTo reference entire graph use 'root' for subgraph name.\n"
 			return
 		subg, en, attr, value = line.split()
 		self.styles[subg][en][attr] = value
-		if(self.auto): 	draw(self.subg_dict, self.styles, self.layout, self.render_set, self.fformat, self.trace)
+		if(self.auto): 	draw(self.subg_dict, self.styles, self.layout, self.fformat, self.trace)
 
 	def do_auto(self, line):
 		"""Toggle Autodraw. When enabled graph is redrawn after each attribute is updated."""	
@@ -44,61 +42,11 @@ class GraphCMD(cmd.Cmd):
 		else:
 			print 'Disabled'
 
-	def do_show(self, line):
-		"""Shows a predicate subgraph including all nodes and edges incident to those nodes.\nUsage: show [predicate]"""
-		if not line:
-			print "Usage: show [predicate]"
-		elif line in self.styles:
-			self.styles[line]['nodes'] = self.saved_styles[line]['nodes'];
-			self.styles[line]['edges'] = self.saved_styles[line]['edges'];
-			if(self.auto): 	draw(self.subg_dict, self.styles, self.layout, self.render_set, self.fformat, self.trace)
-		else:
-			print 'Predicate not found.'
-		
-	def do_hide(self, line):
-		"""Hides a predicate subgraph including all nodes and edges incident to those nodes.\nUsage: hide [predicate]"""
-		if not line:
-			print "Usage: hide [predicate]"
-		elif line in self.styles:
-			self.saved_styles[line]['nodes'] = deepcopy(self.styles[line]['nodes']);   #Backup style
-			self.saved_styles[line]['edges'] = deepcopy(self.styles[line]['edges']);
-			self.styles[line]['edges']['style'] = 'invis'	
-			self.styles[line]['nodes']['style'] = 'invis'	
-			if(self.auto): 	draw(self.subg_dict, self.styles, self.layout, self.render_set, self.fformat, self.trace)
-		else:
-			print 'Predicate not found.'
-	
-	def do_remove(self, line):
-		"""Removes a predicate subgraph including all nodes and edges incident to those nodes.\nUsage: remove [predicate]"""
-		if not line:
-			print "Usage: remove [predicate]"
-		elif line in self.render_set:
-			self.render_set.remove(line)
-			if(self.auto): 	draw(self.subg_dict, self.styles, self.layout, self.render_set, self.fformat, self.trace)
-		else:
-			print 'Predicate not found.'
-
-	def do_add(self, line):
-		"""Add a predicate subgraph back to graph. Undo remove.\nUsage: add [predicate]"""
-		if not line:
-			print "Usage: add [predicate]"
-		elif line in self.styles:
-			self.render_set.add(line)
-			if(self.auto): 	draw(self.subg_dict, self.styles, self.layout, self.render_set, self.fformat, self.trace)
-		else:
-			print 'Predicate not found.'
-		
-
-	def do_clear(self,line):
-		"""Clear all styles from the graph."""
-		self.styles = defaultdict(lambda: defaultdict(lambda: {}))	
-
 	def do_layout(self,line):
 		"""Set layout program of the graph.\nUsage: layout [dot|circo|neato|twopi|fdp|sfdp]"""
 		if line in graphdlv.layout_types:
 			self.layout = line
-			if(self.auto): 	
-				draw(self.subg_dict, self.styles, self.layout, self.render_set, self.fformat, self.trace)
+			if(self.auto): draw(self.subg_dict, self.styles, self.layout, self.fformat, self.trace)
 		else:
 			print 'Layout not supported.'	
 
@@ -106,7 +54,7 @@ class GraphCMD(cmd.Cmd):
 		"""Set file format of the graph.\nUsage: format [pdf|gif|jpeg|png|ps]"""
 		if line in graphdlv.format_types:
 			self.fformat = line
-			if(self.auto): 	draw(self.subg_dict, self.styles, self.layout, self.render_set, self.fformat, self.trace)
+			if(self.auto): 	draw(self.subg_dict, self.styles, self.layout, self.fformat, self.trace)
 		else:
 			print 'Format not supported.'	
 	
@@ -160,21 +108,31 @@ class GraphCMD(cmd.Cmd):
 	def do_draw(self, line):
 		"""Draw graph. Default format is pdf.\nUsage: draw [pdf|ps|jpeg|gif|png]"""
 		if not line: line = self.fformat
-		draw(self.subg_dict, self.styles, self.layout, self.render_set, line, self.trace)
+		draw(self.subg_dict, self.styles, self.layout, line, self.trace)
 
 
 	def do_trace(self,line):
 		"""Trace the atom."""	
 		if not line:
-			print 'Usage: trace [-f] atom [color]'
+			print 'Usage: trace [-p] atom [color]'
 			return
 		line = self.check_whitespace(line)
 		if not self.trace: 
 			self.save_g, self.save_s = self.subg_dict, self.styles # Backup main graph.  	
 		else: self.untrace()
 
-		if line[0] == '-f' or line[0] =='-full':
-			trace = graphdlv.trace(self.adj_list, line[1])
+		
+		if line[0] == '-p' or line[0] =='-partial':
+			trace = graphdlv.trace(self.adj_list, line[1]) 
+			if not trace:
+				print 'Atom not found.'
+				return
+			trace_styles = self.styles                         #Partial trace retains colors of parent graph.
+			trace_graph = graphdlv.pt_graph(trace)
+			t_type = 'partial'
+
+		else:	   
+			trace = graphdlv.trace(self.adj_list, line[0])
 			if not trace:
 				print 'Atom not found.'
 				return
@@ -184,28 +142,16 @@ class GraphCMD(cmd.Cmd):
 			trace_graph = self.subg_dict
 			t_type = 'full'
 
-		else:	   
-			trace = graphdlv.trace(self.adj_list, line[0]) 
-			if not trace:
-				print 'Atom not found.'
-				return
-			trace_styles = self.styles                         #Partial trace retains colors of parent graph.
-			trace_graph = graphdlv.pt_graph(trace)
-			t_type = 'partial'
-		if not trace:
-			print 'Atom not found.'
-			return
-		
 		trace['type'] = t_type
 		self.subg_dict, self.styles, self.trace = trace_graph, trace_styles, trace
-		if(self.auto): 	draw(self.subg_dict, self.styles, self.layout, self.render_set, self.fformat, self.trace)
+		if(self.auto): 	draw(self.subg_dict, self.styles, self.layout, self.fformat, self.trace)
 
 
 	def do_untrace(self,line):
 		"""Untrace; revert to main graph."""	
 		if self.trace:
 			self.untrace()
-			if(self.auto): 	draw(self.subg_dict, self.styles, self.layout, self.render_set, self.fformat)
+			if(self.auto): 	draw(self.subg_dict, self.styles, self.layout, self.fformat)
 
 	def untrace(self):
 		self.trace = None
@@ -215,11 +161,8 @@ class GraphCMD(cmd.Cmd):
 	def help_trace(self):
 		print '\n'.join(['Render a provenance trace for the atom.',
 			'Usage: trace [Options] [atom] [color]',
-			'Options: -f, -full',
-			'If full is specified the trace will be drawn along with the parent graph.',
-			'The default is to render the trace only.',
-			'Partial trace retains styles of the parent graph. Full trace will render trace as color. Default color red.',
-			'If atom has whitespace, use single quotes.'])
+			'Options: -p, -partial',
+			'Partial trace retains styles of the parent graph. Full trace will render trace as color. Default color red.'])
 
 	def help_ls(self):
 		print '\n'.join(['List subgraphs or attributes of the graph.',
@@ -237,14 +180,13 @@ class GraphCMD(cmd.Cmd):
 	
 	def check_whitespace(self, line):
 		m = re.search('(not .+)', line)
-		if not m: return line
+		if not m: return line.split()
 		atom = m.group(1)
 		line = re.sub('not .+', 'x', line)
 		line = line.split()
-		if line[0] == '-f' or line[0] == '-full':
-			line[1] = atom
-		else:
-			line[0] = atom
+		for i,e in enumerate(line): 
+			if e =='x':
+				line[i] = atom
 		return line
 		
 

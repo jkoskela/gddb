@@ -16,7 +16,7 @@ Files:
   -gddb         : Main script.
   -parse_dlv.py : Parses datalog rules, creates auxiliary rules for input into dlv.
   -graphdlv.py  : Module for setting styles and rendering output.
-  -gddb.py      : Command line interpreter for drawing datalog model and tracing provenance.
+  -gddb.py      : Command line interpreter for drawing datalog model and tracing.
 
 Dependencies:
   -pydot
@@ -26,5 +26,4 @@ Dependencies:
 
 Note:
 All styling is applied to predicates. Each predicate has it's own subgraph. It's attributes are then divided into graph, edges, and nodes sets. 
-Only atomic predicates are supported now.
 
