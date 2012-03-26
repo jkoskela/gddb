@@ -1,0 +1,8 @@
+% a(Person, Course)
+% b(Course)
+out(P) :- p(P), cl(C), not se(P,C).
+
+p(P) :- se(P,Z).
+
+r(P) :- se(P,Z), not out(P).
+
