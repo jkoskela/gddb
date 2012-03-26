@@ -1,5 +1,6 @@
 Graphical Datalog Debugger
-by Jade Koskela
+Created by: Jade Koskela
+This was part of my undergraduate research with Dr. Bertram Ludaescher.
 
 This program will render the model of a datalog database using Graphviz.
 It provides tracing functionality, as well as interactive editing of styles.

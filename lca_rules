@@ -1,7 +1,0 @@
-anc(X,Y) :- edge(X,Y).
-anc(X,Z) :- edge(X,Y), anc(Y,Z).
-%anc(X,Z) :- anc(X,Y), anc(Y,Z).
-%anc(X,Z) :- anc(X,Y), edge(Y,Z).
-com_anc(X,Y,Z) :- anc(X,Y), anc(X,Z).
-not_lca(X,Y,Z) :- com_anc(X,Y,Z), anc(X,W), com_anc(W,Y,Z).
-lca(X,Y,Z) :- com_anc(X,Y,Z), not not_lca(X,Y,Z).

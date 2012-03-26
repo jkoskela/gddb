@@ -1,6 +1,7 @@
 #----------------------------------------------------------------------
 # Graph Dlv 
-# Jade Koskela
+# Created by: Jade Koskela
+# jtkoskela@ucdavis.edu
 # This module provides parsing and graphing functions for gddb.
 #----------------------------------------------------------------------
 
@@ -29,25 +30,17 @@ d_styles  = defaultdict(lambda:defauldict(lambda:{}),   #Default styles
 	    })
 
 
-# Parse map is a pickled dictionary of rule mappings created by parsedlv. 
-# Dlv output is the output file from dlv using aux rules.
-# Style is a external style sheet 
-# Returns subg_dict and adj_list
-# subg_dict is used for styling & rendering using pydot. adj_list is used for tracing.
+# Builds agencency list and subgraph dictonary. Returns these as a tuple. 
+# Subgraph dict is used for drawing and styling. Adjacency list is used for tracing.  
+# Parameters:
+#  parse_map  - pickled dictionary of rule mappings created by parsedlv. 
+#  dlv_output - the output file from dlv using the aux rules.
 def build(parse_map, dlv_output):
 	rules = pickle.load(open(parse_map))
 	dlv_out = open(dlv_output).read()
-    	return(graph_map(rules, dlv_out))    
-    
-    
-# Creates edge tuples and nodes from aux firings and places into graph maps.
-# There are two representations of the graph. 
-# graph is a collection of subgraphs for drawing and styling.
-# adj_list is used for tracing. 
-# Returns graph, adj_list tuple
-def graph_map(rules, dlv_out):
-	adj = namedtuple('adj', ['enter','exit'])           #Adjacency list element with in and out edges. 
-	adj_list = defaultdict(lambda: adj([],[]))          #Create an adjancecy list with in and out edges 
+
+	adj = namedtuple('adj', ['enter','exit'])                  #Adjacency list element with in and out edges. 
+	adj_list = defaultdict(lambda: adj([],[]))                 #Create an adjancecy list with in and out edges 
 	aux_count = 0
 	m = re.findall('(aux[^(]*)\(([^)]*)\)', dlv_out)           #Grab all aux tuples
 	graph = defaultdict(lambda:{'nodes':set(), 'edges':set()})
@@ -107,7 +100,8 @@ def graph_map(rules, dlv_out):
 	return (graph, adj_list)
 
 
-# Reads style sheets in from file.
+# Reads styles from external style sheet.
+# f_in is the name of the style sheet. 
 def read_styles(f_in):
 	styles = defaultdict(lambda: defaultdict(lambda: {}))
 	if not f_in:                                                            #If no external style sheet was supplied
@@ -127,6 +121,12 @@ def read_styles(f_in):
 
 	
 # Renders the graph to dot file using specified graphviz layout and file format.
+# Parameters:
+#  graph  -  subgraph dict
+#  styles -  style dict
+#  layout -  graphviz layout eg. dot, circo
+#  format -  output file format eg. pdf, gif
+#  trace  -  a provenance trace
 def draw(graph, styles, layout, out_format, trace={}):
 	G = pd.Dot()         #Dot is derived class of Graph
 		
@@ -258,12 +258,12 @@ def pt_graph(trace):
 	return graph
 
 
-#Returns the predicate of an atom
+# Returns the predicate of an atom
 def predicate(atom):
 	m = re.search('([^(]*)(.+)', atom)
 	return m.group(1)
 
-# Returns predicate atom in the edge
+# Returns subgraph predicate of an edge
 def edge_pred(e):
 	if re.match('{', e[0]):
 		return 'negation_out'
@@ -283,7 +283,7 @@ def node_pred(n):
 	else:
 		return predicate(n)
 
-# Sets trace color 
+# Colors all nodes and edges in the trace. 
 # Returns new style dict
 def trace_color(styles):
 	new_styles = deepcopy(styles)

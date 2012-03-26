@@ -1,6 +1,7 @@
 #----------------------------------------------------------------------
-# GDDB 
-# Jade Koskela
+# GDDB: Graphical Datalog Debugger 
+# Created by: Jade Koskela
+# jtkoskela@ucdavis.edu
 # Command line interpreter for graphical datalog debugging.
 #----------------------------------------------------------------------
 
@@ -16,7 +17,8 @@ default_format = 'pdf'
 default_layout = 'dot'
 
 class GraphCMD(cmd.Cmd):
-	def load_p(self, parse_map, dlv_out, styles=False):
+	def __init__(self, parse_map, dlv_out, styles=False):
+		cmd.Cmd.__init__(self)
 		self.subg_dict, self.adj_list = graphdlv.build(parse_map, dlv_out)         
 		self.auto = False 
 		self.layout = default_layout 
@@ -24,6 +26,7 @@ class GraphCMD(cmd.Cmd):
 		self.saved_styles = defaultdict(lambda:{'nodes':{}, 'styles':{}})  
 		self.styles = graphdlv.read_styles(styles)
 		self.trace = None
+		self.ruler = '-'
 		
 	def do_set(self, line):
 		"""Set attribute of the graph or subgraphs.\nUsage: set [subgraph] [edges|nodes] [attribute] [value]\n"""
@@ -191,15 +194,14 @@ class GraphCMD(cmd.Cmd):
 		
 
 if __name__ == '__main__':
-	c = GraphCMD()
 	if len(sys.argv) < 3:
 		print "Usage: gddb.py [parse_map] [dlv_out] [styles]"
 		sys.exit(1)
 	else:
 		print "Graphical Datalog Debugger"
 	if len(sys.argv) == 3:
-		c.load_p(sys.argv[1], sys.argv[2])
+		c = GraphCMD(sys.argv[1], sys.argv[2])
 	else:
-		c.load_p(sys.argv[1], sys.argv[2], sys.argv[3])
+		c = GraphCMD(sys.argv[1], sys.argv[2], sys.argv[3])
 	c.cmdloop()
 	
