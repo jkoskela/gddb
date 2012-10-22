@@ -2,8 +2,6 @@
 # DLV Rule Parser
 # Created by: Jade Koskela
 # jtkoskela@ucdavis.edu
-# This code was based on parseddl.py by Eric Gripkoff
-# Used with permission. 
 #------------------------------------------------------------------------------------------
 
 # Tokenizer for the Datalog language
