@@ -1,9 +1,12 @@
-#----------------------------------------------------------------------
+#======================================================================
 # GDDB: Graphical Datalog Debugger 
-# Created by: Jade Koskela
-# jtkoskela@ucdavis.edu
-# Command line interpreter for graphical datalog debugging.
-#----------------------------------------------------------------------
+# Author: Jade Koskela <jtkoskela@ucdavis.edu>
+# http://github.com/jkoskela/gddb
+# Command line interpreter for GDDB
+#======================================================================
+"""
+This is the command line interpreter for gddb. The main functionality is provided by the graphdlv module. 
+"""
 
 import cmd
 import sys

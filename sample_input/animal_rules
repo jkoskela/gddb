@@ -1,0 +1,4 @@
+dog(X) :- mammal(X), woof(X).
+cat(X) :- mammal(X), meow(X).
+Max(X) :- red(X), dog(X).
+Max(X) :- black(X), cat(X).

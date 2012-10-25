@@ -1,8 +1,14 @@
-#------------------------------------------------------------------------------------------
-# DLV Rule Parser
-# Created by: Jade Koskela
-# jtkoskela@ucdavis.edu
-#------------------------------------------------------------------------------------------
+#======================================================================
+# GDDB: Graphical Datalog Debugger 
+# Author: Jade Koskela <jtkoskela@ucdavis.edu>
+# http://github.com/jkoskela/gddb
+#======================================================================
+""" 
+   This is a datalog parser. 
+   It transforms datalog rules by introducing intermediary rules that can then be used to render provenance.
+   Its output will be the new auxiliary rules, and a map which can be used to parse the output from dlv.
+"""
+
 
 # Tokenizer for the Datalog language
 import sys

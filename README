@@ -1,9 +1,12 @@
-Graphical Datalog Debugger
-Created by: Jade Koskela
-This was part of my undergraduate research with Dr. Bertram Ludaescher.
+GDDB: Graphical Datalog Debugger
+Author: Jade Koskela <jtkoskela@ucdavis.edu>
+http://github.com/jkoskela/gddb
+Undergraduate Research Supervised by Dr. Bertram Ludaescher
+Spring 2012
 
 This program will render the model of a datalog database using Graphviz.
 It provides tracing functionality, as well as interactive editing of styles.
+For more information, See the report gddb.pdf.
 
 Input:
   -Datalog rules
@@ -24,8 +27,8 @@ Dependencies:
   -graphviz
   -ply   
   -cairo 
+  -dlv
 
 Note:
 All styling is applied to predicates. Each predicate has it's own subgraph. It's attributes are then divided into graph, edges, and nodes sets. 
-
 

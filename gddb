@@ -1,4 +1,12 @@
 #!/bin/bash
+#======================================================================
+# GDDB: Graphical Datalog Debugger 
+# Author: Jade Koskela <jtkoskela@ucdavis.edu>
+# http://github.com/jkoskela/gddb
+# Main script for gddb.
+#
+#======================================================================
+
 if [ $# -lt 2 ]
 then
 	echo "Usage: gddb [rules] [facts] [styles]"
@@ -13,7 +21,7 @@ then
 	exit
 fi
 
-dlv dlv_aux_rules $2 > dlv_out
+./dlv dlv_aux_rules $2 > dlv_out
 if [ $# -eq 3 ]
 then
 	python gddb.py parse_map.p dlv_out $3 

@@ -2,3 +2,4 @@ negation_out.edges:          {style=dashed, color=red}
 negation_in.edges:           {style=dashed, color=green}               
 aux.nodes:                   {shape=point}
 root.nodes:                  {shape=plaintext}
+root.graph                   {rankdir=LR}

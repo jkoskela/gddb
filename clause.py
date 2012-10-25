@@ -1,8 +1,9 @@
-#----------------------------------------------------------------------
-# Class definitions for GDDB Parser 
-# Created by: Jade Koskela
-# jtkoskela@ucdavis.edu
-#----------------------------------------------------------------------
+#======================================================================
+# GDDB: Graphical Datalog Debugger 
+# Author: Jade Koskela <jtkoskela@ucdavis.edu>
+# http://github.com/jkoskela/gddb
+# Class definitions for GDDB Parser
+#======================================================================
 
 import re
 
