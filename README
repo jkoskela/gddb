@@ -28,3 +28,4 @@ Dependencies:
 Note:
 All styling is applied to predicates. Each predicate has it's own subgraph. It's attributes are then divided into graph, edges, and nodes sets. 
 
+
