@@ -2,6 +2,7 @@
 # GDDB: Graphical Datalog Debugger 
 # Author: Jade Koskela <jtkoskela@ucdavis.edu>
 # http://github.com/jkoskela/gddb
+# Loosely based on parseddl.py by Erik Gripkoff.
 #======================================================================
 """ 
    This is a datalog parser. 
