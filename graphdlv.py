@@ -10,117 +10,97 @@ This module provides parsing and graphing functionality to the gddb command line
 
 import re
 import sys
-sys.path.append("./pydot")
-import pydot
-import dot_parser
 import pickle
+import json
+import pydot as pd
 from collections import defaultdict
 from collections import namedtuple
-import pydot as pd
 from copy import deepcopy
 
 format_types = set(['gif', 'png', 'pdf', 'jpeg', 'ps'])
 layout_types = set(['dot','neato','twopi','circo','fdp','sfdp'])
-f_out_base = "graphdlv."
-nt_color = 'black'             #Default color for elements not included in the trace subgraph
-t_color  = 'red'               #Default color for elements included in the trace subgraph
+f_out_name = 'graph'   #Default output filename
+nt_color   = 'black'   #Default color for elements not included in the trace subgraph
+t_color    = 'red'     #Default color for elements included in the trace subgraph
 
-# Defines default graphviz styles for the various classes of objects in the graph.
-d_styles  = defaultdict(lambda:defauldict(lambda:{}),   
-            {'root':defaultdict(lambda:{},{'nodes':{'shape':'plaintext'}}), 
-             'aux':defaultdict(lambda:{},{'nodes':{'shape':'point'}}),
-             'negation_in':defaultdict(lambda:{},{'edges':{'color':'green', 'style':'dashed'}}),   
-             'negation_out':defaultdict(lambda:{},{'edges':{'color':'red'}})  
-            })
-
+d_styles=('{"root":{"nodes":{"shape":"plaintext"}},'
+          '"aux" :{"nodes":{"shape":"point"}},'
+          '"negation_in":{"edges":{"color":"green","style":"dashed"}},'
+          '"negation_out":{"edges":{"color":"red"}}}')
 
 def build(parse_map, dlv_output):
    """
    Builds agencency list and subgraph dictonary. Returns these as a tuple. 
-   Subgraph dict is used for drawing and styling. Adjacency list is used for tracing provenance.  
-   parse_map  - pickled dictionary of rule mappings created by parsedlv. 
-   dlv_output - the output file created by dlv using the auxiliary rules.
+   Subgraph dictionary is used for rendering. Adjacency list is used for tracing provenance.  
+   parse_map  - serialized dictionary of rule mappings created by parsedlv. 
+   dlv_output - the output model created by dlv using the auxiliary rules.
    """
    rules = pickle.load(open(parse_map))
    dlv_out = open(dlv_output).read()
 
-   adj = namedtuple('adj', ['enter','exit'])                  #Adjacency list element with in and out edges. 
-   adj_list = defaultdict(lambda: adj([],[]))                 #Create an adjancecy list with in and out edges 
    aux_count = 0
-   m = re.findall('(aux[^(]*)\(([^)]*)\)', dlv_out)           #Grab all aux tuples
+   adj = namedtuple('adj', ['in_edge','out_edge'])     
+   adj_list = defaultdict(lambda: adj([],[]))   
+   m = re.findall('(aux[^(]*)\(([^)]*)\)', dlv_out) 
    graph = defaultdict(lambda:{'nodes':set(), 'edges':set()})
    negations = set() 
    
    for g in m:
       aux_count = aux_count + 1
-      aux = g[0]
-      aux_terms = g[1].split(',')
-      p_list = rules[aux]                          #Get the mapping from the aux tuple to the body/head
-      aux_atom = '%s(%s)' % (aux, g[1])
+      pred = g[0]
+      argv = g[1].split(',')
+      p_list = rules[pred]     #Get the mapping from the aux tuple to the body/head
+      aux_atom = '%s(%s)' % (pred, g[1])
       graph['aux']['nodes'].add(aux_atom)
       
-      # Aux -> Head
-      head = p_list[0][0]                          #Create aux->edges, insert into graph and adj_list
-      atom = head + '('
-      term_i = p_list[0][1]
-      for i in term_i:                             #Create head atom using mapping from aux atom
-         atom = atom + aux_terms[i] + ','
-      atom = atom.rstrip(',') + ')'
+      # Aux -> Head Edges
+      pred = p_list[0][0]     #Create aux->head edges, insert into graph and adj_list
+      argi = p_list[0][1]
+      args = [argv[i] for i in argi]
+      atom = "%s(%s)" % (pred, ','.join(args))
 
-      graph[head]['nodes'].add(atom)                      
-      graph[head]['edges'].add((aux_atom, atom))
-      adj_list[atom].enter.append(aux_atom)
-      adj_list[aux_atom].exit.append(aux_atom)     #Add nodes to adj list  
+      graph[pred]['nodes'].add(atom)                      
+      graph[pred]['edges'].add((aux_atom, atom))
+      adj_list[atom].in_edge.append(aux_atom)
+      adj_list[aux_atom].out_edge.append(aux_atom)  
       
-      # Body -> Aux                                #Create body->aux edges
-      for t in p_list[1:]:
-         pred, term_i = t[0], t[1]
-         atom = pred + '('
-         for i in term_i:
-            atom = atom + aux_terms[i] + ','
-         atom = atom.rstrip(',') + ')'
+      # Body -> Aux Edges                    
+      for p in p_list[1:]:
+         pred, argi = p[0], p[1]
+         args = [argv[i] for i in argi]
+         atom = "%s(%s)" % (pred, ','.join(args))
 
-         m = re.search('not (.+)', pred)           #Find negations
-         if m:
-            n_pred = m.group(1)  
+         n = re.search('not (.+)', pred)   #Find negations
+         if n:
+            n_pred = n.group(1)  
             neg_class = '{%s}' % n_pred
             negations.add(n_pred)                    
             graph['negation_out']['edges'].add((neg_class, atom))
-            adj_list[atom].enter.append(neg_class)
-            adj_list[neg_class].exit.append(atom)
+            adj_list[atom].in_edge.append(neg_class)
+            adj_list[neg_class].out_edge.append(atom)
 
-         graph[pred]['nodes'].add(atom)            #Add nodes,edges to body predicates subgraphs
+         graph[pred]['nodes'].add(atom) #Add nodes,edges to body predicates subgraphs
          graph[pred]['edges'].add((atom, aux_atom))
-         adj_list[atom].exit.append(aux_atom)      #Add nodes to adj list 
-         adj_list[aux_atom].enter.append(atom)
+         adj_list[atom].out_edge.append(aux_atom) 
+         adj_list[aux_atom].in_edge.append(atom)
 
    for pred in negations:                          #Create negation class
       neg_class = '{%s}' % pred
       graph['negation']['nodes'].add(neg_class)
       for n in graph[pred]['nodes']:
          graph['negation_in']['edges'].add((n,'{%s}' % pred))
-         adj_list[n].exit.append(neg_class)        #Add nodes to adj list 
-         adj_list[neg_class].enter.append(n)
-
+         adj_list[n].out_edge.append(neg_class)    
+         adj_list[neg_class].in_edge.append(n)
    return (graph, adj_list)
 
 
 def read_styles(f_in):
    """ Reads styles from external style sheet, f_in. """
-   styles = defaultdict(lambda: defaultdict(lambda: {}))
-   if not f_in:                                    #If no external style sheet was supplied
-      styles.update(d_styles)
-      return styles 
-   s = open(f_in,'rb').readlines() 
-   for line in s:
-      line = line.split('.')
-      subg = line[0]
-      line = line[1].split(':')
-      ssubg = line[0]
-      if len(line) > 1: 
-         m = re.findall('([\w^=]*)=(#?\w*)',line[1])
-      for g in m:
-         styles[subg][ssubg].update( ((g[0],g[1]),))
+   l = lambda:defaultdict(l)
+   if not f_in:                            
+      styles = json.loads(d_styles, object_hook=lambda x: defaultdict(l, x))
+   else:
+      styles = json.load(open(f_in), object_hook=lambda x: defaultdict(l, x))
    return styles
 
    
@@ -135,7 +115,7 @@ def draw(graph, styles, layout, out_format, trace={}):
      trace  -  a provenance trace
    """
 
-   G = pd.Dot()         #Dot is derived class of Graph
+   G = pd.Dot()  #Dot is derived class of Graph
 
    #Set attributes for root graph.
    graph_attr = styles['root']['graph']
@@ -181,7 +161,7 @@ def draw(graph, styles, layout, out_format, trace={}):
          proc_pt(G, trace['back_edges'])
 
    #G.write(f_out_dot,prog=layout)
-   f_out = f_out_base + out_format  
+   f_out = "%s.%s" % (f_out_name,out_format)
    if out_format == 'pdf':
       G.write_pdf(f_out,prog=layout)
    elif out_format == 'png':
@@ -199,7 +179,7 @@ def draw(graph, styles, layout, out_format, trace={}):
 def trace(adj_list, atom):
    """ Returns provenance trace of atom. """
    trace = {'nodes': set(), 'back_edges':set(), 'edges': set()}
-   color_n = defaultdict(lambda:{})
+   color_n = defaultdict(dict)
    if atom not in adj_list: return None
    DFS(adj_list, atom, trace, color_n) 
    return trace 
@@ -209,7 +189,7 @@ def DFS(adj_list, v, trace, color_n):
    v_pred = predicate(v)
    color_n[v] = 'grey'
    trace['nodes'].add(v)
-   for u in adj_list[v].enter:
+   for u in adj_list[v].in_edge:
       if not color_n[u]:
          trace['edges'].add((u,v))
          DFS(adj_list, u, trace, color_n)
@@ -251,17 +231,13 @@ def proc_pt(graph, be):
 def pt_graph(trace):
    """ Returns trace only graph. """
    graph = defaultdict(lambda:{'nodes':set(), 'edges':set()})
-   for n in trace['nodes']:
-      pred = node_pred(n)
-      graph[pred]['nodes'].add(n)
-   for e in trace['edges']:
-      pred = edge_pred(e)
-      graph[pred]['edges'].add(e)
-   for e in trace['back_edges']:
-      pred = edge_pred(e)
-      graph[pred]['edges'].add(e)
+   nodes = [node_pred(n) for n in trace['nodes']]
+   graph[pred]['nodes'].add(nodes)
+   edges = [edge_pred(e) for e in trace['edges']]
+   graph[pred]['edges'].add(edges)
+   edges = [edge_pred(e) for e in trace['back_edges']]
+   graph[pred]['edges'].add(edges)
    return graph
-
 
 def predicate(atom):
    """ Returns the predicate of an atom. """

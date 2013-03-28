@@ -94,9 +94,8 @@ class GraphCMD(cmd.Cmd):
 				attrs = {}	
 				for e in subg_v.itervalues():
 					attrs.update(e)
-				if not e: continue
 					
-				print subg_k + ':' 
+				print '%s:' % subg_k
 				for key,value in self.styles[subg_k]['graph'].iteritems(): 
 					print ('    %s=%s') % (key,value) 
 				if subg_v['nodes']: 
@@ -108,14 +107,13 @@ class GraphCMD(cmd.Cmd):
 				for key,value in subg_v['edges'].iteritems(): 
 					print ('    %s=%s') % (key,value) 
 		else:
-			print "ls: invalid option " + line
+			print "ls: invalid option %s" % line
 
 			
 	def do_draw(self, line):
 		"""Draw graph. Default format is pdf.\nUsage: draw [pdf|ps|jpeg|gif|png]"""
 		if not line: line = self.fformat
 		draw(self.subg_dict, self.styles, self.layout, line, self.trace)
-
 
 	def do_trace(self,line):
 		"""Trace the atom."""	
@@ -127,7 +125,6 @@ class GraphCMD(cmd.Cmd):
 			self.save_g, self.save_s = self.subg_dict, self.styles # Backup main graph.  	
 		else: self.untrace()
 
-		
 		if line[0] == '-p' or line[0] =='-partial':
 			trace = graphdlv.trace(self.adj_list, line[1]) 
 			if not trace:
@@ -152,7 +149,6 @@ class GraphCMD(cmd.Cmd):
 		self.subg_dict, self.styles, self.trace = trace_graph, trace_styles, trace
 		if(self.auto): 	draw(self.subg_dict, self.styles, self.layout, self.fformat, self.trace)
 
-
 	def do_untrace(self,line):
 		"""Untrace; revert to main graph."""	
 		if self.trace:
@@ -162,7 +158,6 @@ class GraphCMD(cmd.Cmd):
 	def untrace(self):
 		self.trace = None
 		self.subg_dict, self.styles = self.save_g, self.save_s
-
 
 	def help_trace(self):
 		print '\n'.join(['Render a provenance trace for the atom.',
@@ -182,7 +177,7 @@ class GraphCMD(cmd.Cmd):
 		'''Prints options'''
 		print 'Options'
 		for x,y in opt_l:
-			print '-%s, --%s' %(x,y)
+			print '-%s, --%s' % (x,y)
 	
 	def check_whitespace(self, line):
 		m = re.search('(not .+)', line)
@@ -195,7 +190,6 @@ class GraphCMD(cmd.Cmd):
 				line[i] = atom
 		return line
 		
-
 if __name__ == '__main__':
 	if len(sys.argv) < 3:
 		print "Usage: gddb.py [parse_map] [dlv_out] [styles]"

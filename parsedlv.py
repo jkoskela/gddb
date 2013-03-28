@@ -10,14 +10,13 @@
    Its output will be the new auxiliary rules, and a map which can be used to parse the output from dlv.
 """
 
-
 # Tokenizer for the Datalog language
 import sys
 import ply.lex as lex
 import pickle
 import re
-from clause import Atom
-from clause import Clause
+from rule import Atom
+from rule import Rule
 
 # Tokenizer
 # List of reserved names. Checked by the t_ID function
@@ -59,7 +58,6 @@ t_ignore  = ' \t'
 
 # Error handling rule
 def t_error(t):
-    #print "Illegal character '%s'" % t.value[0]
     sys.stderr.write("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
 
@@ -73,43 +71,40 @@ def t_comment(t):
 
 lexer = lex.lex()
 import ply.yacc as yacc
-clause_map = dict()
-aux_index = 0          #Used to distinguish different derivations of the same predicate
-
-# Get the token map from the lexer.  This is required.
-# from calclex import tokens
+rule_map = dict()
+aux_index = 0   # To Distinguish different derivations of same predicate
 
 def p_program(p):
-    'program : clause_plural'
+    'program : rule_plural'
     p[0] = p[1]
     print p[0]
 
-def p_clause_plural(p):
-    'clause_plural : clause_single clause_plural'
+def p_rule_plural(p):
+    'rule_plural : rule_single rule_plural'
     p[0] = p[1] + '\n' + p[2]
 
-def p_clause_plural_one(p):
-    'clause_plural : clause_single'
+def p_rule_plural_one(p):
+    'rule_plural : rule_single'
     p[0] = p[1]
 
-def p_clause_single(p):
-    'clause_single : atom COLONDASH atoms PERIOD'
+def p_rule_single(p):
+    'rule_single : atom COLONDASH atoms PERIOD'
     global aux_index
-    c = Clause(p[1], p[3], aux_index)
+    c = Rule(p[1], p[3], aux_index)
     aux_index = aux_index + 1
-    clause_map.update(c.clause_map)
+    rule_map.update(c.rule_map)
     p[0] = c.__str__()
 
-def p_terms_plural(p):
-    'terms : term COMMA terms'
+def p_args_plural(p):
+    'args : arg COMMA args'
     p[0] = p[1] + p[2] + p[3] 
 
-def p_terms_one(p):
-    'terms : term'
+def p_args_one(p):
+    'args : arg'
     p[0] = p[1]
 
-def p_term_id(p):
-    'term : ID'
+def p_arg_id(p):
+    'arg : ID'
     p[0] = p[1]
 
 def p_atoms_plural(p):
@@ -128,7 +123,7 @@ def p_atoms_one(p):
     p[0] = [p[1]]
 
 def p_atom(p):
-    'atom : ID LPAREN terms RPAREN'
+    'atom : ID LPAREN args RPAREN'
     p[0] = Atom(p[1],p[3])
 
 def p_error(p):
@@ -138,7 +133,4 @@ def p_error(p):
 parser = yacc.yacc()
 data = open(sys.argv[1]).read()
 result = parser.parse(data)
-pickle.dump(clause_map, open('parse_map.p', 'wb'))
-
-
-
+pickle.dump(rule_map, open('parse_map.p', 'wb'))
